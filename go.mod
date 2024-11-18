@@ -1,6 +1,6 @@
-module github.com/fiskaly/coding-challenges/signing-service-challenge
+module github.com/gren236/fiskaly-go-challenge
 
-go 1.20
+go 1.22
 
 require (
 	github.com/go-playground/validator/v10 v10.23.0

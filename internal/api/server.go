@@ -1,9 +1,25 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/google/uuid"
+	"github.com/gren236/fiskaly-go-challenge/internal/domain"
+	"go.uber.org/zap"
 	"net/http"
 )
+
+type DeviceService interface {
+	CreateDevice(ctx context.Context, label *string, algorithm domain.Algorithm) (domain.Device, error)
+	GetDevices(ctx context.Context) ([]domain.Device, error)
+	GetDevice(ctx context.Context, id uuid.UUID) (domain.Device, error)
+}
+
+type SignatureService interface {
+	SignTransaction(ctx context.Context, deviceID uuid.UUID, data string) (domain.SignedData, error)
+	GetSignatures(ctx context.Context, deviceID uuid.UUID) ([]domain.SignedData, error)
+}
 
 // Response is the generic API response container.
 type Response struct {
@@ -15,28 +31,49 @@ type ErrorResponse struct {
 	Errors []string `json:"errors"`
 }
 
+type Config struct {
+	Host string
+	Port int
+}
+
 // Server manages HTTP requests and dispatches them to the appropriate services.
 type Server struct {
-	listenAddress string
+	logger *zap.SugaredLogger
+	config Config
+
+	deviceService    DeviceService
+	signatureService SignatureService
 }
 
 // NewServer is a factory to instantiate a new Server.
-func NewServer(listenAddress string) *Server {
+func NewServer(logger *zap.SugaredLogger, config Config, deviceSvc DeviceService, signatureSvc SignatureService) *Server {
 	return &Server{
-		listenAddress: listenAddress,
-		// TODO: add services / further dependencies here ...
+		logger:           logger,
+		config:           config,
+		deviceService:    deviceSvc,
+		signatureService: signatureSvc,
 	}
 }
 
-// Run registers all HandlerFuncs for the existing HTTP routes and starts the Server.
-func (s *Server) Run() error {
+// GetHttpServer returns a new HTTP server instance with all routes registered.
+func (s *Server) GetHttpServer() *http.Server {
 	mux := http.NewServeMux()
 
-	mux.Handle("/api/v0/health", http.HandlerFunc(s.Health))
+	mux.Handle("GET /api/v0/health", http.HandlerFunc(s.Health))
 
-	// TODO: register further HandlerFuncs here ...
+	mux.Handle("POST /api/v0/devices", http.HandlerFunc(s.CreateDevice))
+	mux.Handle("GET /api/v0/devices", http.HandlerFunc(s.GetDevices))
+	mux.Handle("GET /api/v0/devices/{id}", http.HandlerFunc(s.GetDevice))
 
-	return http.ListenAndServe(s.listenAddress, mux)
+	//mux.Handle("POST /api/v0/devices/{id}/signatures", http.HandlerFunc(s.SignTransaction))
+	//mux.Handle("GET /api/v0/devices/{id}/signatures", http.HandlerFunc(s.GetSignatures))
+
+	listenAddr := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
+
+	return &http.Server{
+		Addr:    listenAddr,
+		Handler: mux,
+	}
 }
 
 // WriteInternalError writes a default internal error message as an HTTP response.

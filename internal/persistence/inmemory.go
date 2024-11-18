@@ -3,8 +3,8 @@ package persistence
 import (
 	"context"
 	"fmt"
-	"github.com/fiskaly/coding-challenges/signing-service-challenge/internal/domain"
 	"github.com/google/uuid"
+	"github.com/gren236/fiskaly-go-challenge/internal/domain"
 	"sync"
 	"time"
 )
@@ -27,7 +27,8 @@ type InMemory struct {
 	storage map[uuid.UUID]*Device
 }
 
-// NewInMemory creates a new InMemory persistence layer.
+// NewInMemory creates a new InMemory persistence layer. I pass context to every function to be able to cancel the
+// operation if needed. This is a good practice, even if we do not use it in this implementation.
 func NewInMemory() *InMemory {
 	return &InMemory{
 		storage: make(map[uuid.UUID]*Device),
@@ -39,6 +40,18 @@ func (p *InMemory) CreateDevice(ctx context.Context, device domain.Device) error
 	p.storage[device.ID] = &Device{
 		Device: device,
 	}
+
+	return nil
+}
+
+// IncrementSignatureCounter increments the signature counter for a device in the persistence layer.
+func (p *InMemory) IncrementSignatureCounter(ctx context.Context, id uuid.UUID) error {
+	device, ok := p.storage[id]
+	if !ok {
+		return fmt.Errorf("device not found")
+	}
+
+	device.SignatureCounter++
 
 	return nil
 }
@@ -115,7 +128,8 @@ func (p *InMemory) GetSignatures(ctx context.Context, deviceID uuid.UUID) ([]dom
 	return signatures, nil
 }
 
-// RunTransaction runs a transaction in the persistence layer.
+// RunTransaction runs a transaction in the persistence layer. In this implementation it will get a mutex for specific
+// device.
 func (p *InMemory) RunTransaction(ctx context.Context, deviceID uuid.UUID, fn func(ctx context.Context) error) error {
 	p.storage[deviceID].Lock()
 	defer p.storage[deviceID].Unlock()

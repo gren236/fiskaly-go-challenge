@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
-	"github.com/fiskaly/coding-challenges/signing-service-challenge/internal/domain"
+	"github.com/gren236/fiskaly-go-challenge/internal/domain"
 )
 
 type SignerCreator struct{}

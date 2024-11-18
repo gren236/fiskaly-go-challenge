@@ -6,7 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
-	"github.com/fiskaly/coding-challenges/signing-service-challenge/internal/domain"
+	"github.com/gren236/fiskaly-go-challenge/internal/domain"
 )
 
 type Generator struct {
@@ -24,7 +24,7 @@ func NewGenerator() *Generator {
 
 func (g *Generator) GenerateKeyPair(algorithm domain.Algorithm) (domain.KeyPair, error) {
 	switch algorithm {
-	case domain.AlgorithmECDSA:
+	case domain.AlgorithmECC:
 		return g.ecc.Generate()
 	case domain.AlgorithmRSA:
 		return g.rsa.Generate()

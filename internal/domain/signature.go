@@ -2,6 +2,8 @@ package domain
 
 import (
 	"context"
+	"encoding/base64"
+	"fmt"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -45,10 +47,70 @@ func NewSignatureService(logger *zap.SugaredLogger, deviceSvc *DeviceService, si
 }
 
 func (ss *SignatureService) SignTransaction(ctx context.Context, deviceID uuid.UUID, data string) (SignedData, error) {
-	// TODO Get device
-	// TODO Get last signature if device signature counter is not 0
-	// TODO Sign data
-	// TODO Save signature
+	var signedData *SignedData
 
-	return SignedData{}, nil
+	err := ss.persister.RunTransaction(ctx, deviceID, func(ctx context.Context) error {
+		// Get device
+		device, err := ss.deviceSvc.GetDevice(ctx, deviceID)
+		if err != nil {
+			return err
+		}
+
+		// Get last signature if device signature counter is not 0
+		lastSignature := base64.StdEncoding.EncodeToString([]byte(device.ID.String())) // base case
+		if device.SignatureCounter != 0 {
+			lastSignatureData, err := ss.persister.GetLastSignature(ctx, deviceID)
+			if err != nil {
+				return fmt.Errorf("failed to retrieve last signature: %w", err)
+			}
+
+			lastSignature = lastSignatureData.Signature
+		}
+
+		// Sign data
+		signer, err := ss.signerCreator.CreateSigner(device.KeyPair)
+		if err != nil {
+			return fmt.Errorf("failed to create signer: %w", err)
+		}
+
+		dataToBeSigned := fmt.Sprintf("%d_%s_%s", device.SignatureCounter, data, lastSignature)
+
+		signature, err := signer.Sign([]byte(dataToBeSigned))
+		if err != nil {
+			return fmt.Errorf("failed to sign data: %w", err)
+		}
+
+		// Save signature
+		signedData = &SignedData{
+			Signature:    base64.StdEncoding.EncodeToString(signature),
+			OriginalData: dataToBeSigned,
+		}
+
+		err = ss.persister.SaveSignature(ctx, deviceID, *signedData)
+		if err != nil {
+			return fmt.Errorf("failed to save signature: %w", err)
+		}
+
+		// Update device signature counter
+		err = ss.deviceSvc.IncrementSignatureCounter(ctx, deviceID)
+		if err != nil {
+			return fmt.Errorf("failed to increment signature counter: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return SignedData{}, fmt.Errorf("failed to sign transaction: %w", err)
+	}
+
+	return *signedData, nil
+}
+
+func (ss *SignatureService) GetSignatures(ctx context.Context, deviceID uuid.UUID) ([]SignedData, error) {
+	signatures, err := ss.persister.GetSignatures(ctx, deviceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve signatures: %w", err)
+	}
+
+	return signatures, nil
 }

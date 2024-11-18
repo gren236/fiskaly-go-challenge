@@ -1,0 +1,14 @@
+### Get all devices
+GET http://localhost:8080/api/v0/devices
+
+### Create a new device
+POST http://localhost:8080/api/v0/devices
+Content-Type: application/json
+
+{
+  "label": "test",
+  "algorithm": "RSA"
+}
+
+### Get a device by id
+GET http://localhost:8080/api/v0/devices/{deviceId}

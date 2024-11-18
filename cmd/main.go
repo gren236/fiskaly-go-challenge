@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"github.com/fiskaly/coding-challenges/signing-service-challenge/internal/app"
+	"github.com/gren236/fiskaly-go-challenge/internal/app"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 	"os"
@@ -14,12 +14,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer func(logger *zap.Logger) {
-		err := logger.Sync()
-		if err != nil {
-			panic(err)
-		}
-	}(logger) // flushes buffer, if any
+	defer logger.Sync()
 
 	sLogger := logger.Sugar()
 
