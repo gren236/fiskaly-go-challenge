@@ -1,3 +1,5 @@
+@device_id = put_device_id_here
+
 ### Get all devices
 GET http://localhost:8080/api/v0/devices
 
@@ -7,8 +9,19 @@ Content-Type: application/json
 
 {
   "label": "test",
-  "algorithm": "RSA"
+  "algorithm": "ECC"
 }
 
 ### Get a device by id
-GET http://localhost:8080/api/v0/devices/{deviceId}
+GET http://localhost:8080/api/v0/devices/{{device_id}}
+
+### Sign transaction data
+POST http://localhost:8080/api/v0/devices/{{device_id}}/signatures
+Content-Type: application/json
+
+{
+  "data": "test_data"
+}
+
+### Get signatures for a device
+GET http://localhost:8080/api/v0/devices/{{device_id}}/signatures

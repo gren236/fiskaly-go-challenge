@@ -34,19 +34,20 @@ func Run(ctx context.Context, envGetter func(string) string, logger *zap.Sugared
 
 	logger.Infow("parsed config", "config", conf)
 
-	// Set up persistence
-	inMemory := persistence.NewInMemory()
-
 	// Set up crypto services
 	keyGenerator := crypto.NewGenerator()
 	signerCreator := crypto.NewSignerCreator()
+	kpMarshaler := crypto.NewMarshaler()
+
+	// Set up persistence
+	inMemory := persistence.NewInMemory(kpMarshaler)
 
 	// Set up services
 	deviceService := domain.NewDeviceService(logger, inMemory, keyGenerator)
 	signatureService := domain.NewSignatureService(logger, deviceService, signerCreator, inMemory)
 
-	// Set up server
-	server := api.NewServer(logger, api.Config{Host: conf.ApiHost, Port: conf.ApiPort}, deviceService, signatureService)
+	// Set up the server. I've extended the server setup so we could gracefully shutdown it with context cancellation.
+	server := api.NewServer(logger, api.Config{Host: conf.ApiHost, Port: conf.ApiPort}, validate, deviceService, signatureService)
 
 	logger.Info("built all dependencies")
 

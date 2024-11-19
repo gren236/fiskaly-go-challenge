@@ -18,8 +18,8 @@ func (RSAKeyPair) IsKeyPair() {}
 type RSAMarshaler struct{}
 
 // NewRSAMarshaler creates a new RSAMarshaler.
-func NewRSAMarshaler() RSAMarshaler {
-	return RSAMarshaler{}
+func NewRSAMarshaler() *RSAMarshaler {
+	return &RSAMarshaler{}
 }
 
 // Marshal takes an RSAKeyPair and encodes it to be written on disk.

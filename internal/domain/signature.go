@@ -30,14 +30,24 @@ type SignaturePersister interface {
 	GetSignatures(ctx context.Context, deviceID uuid.UUID) ([]SignedData, error)
 }
 
+type DeviceServer interface {
+	GetDevice(ctx context.Context, deviceID uuid.UUID) (Device, error)
+	IncrementSignatureCounter(ctx context.Context, deviceID uuid.UUID) error
+}
+
 type SignatureService struct {
 	logger        *zap.SugaredLogger
-	deviceSvc     *DeviceService
+	deviceSvc     DeviceServer
 	signerCreator SignerCreator
 	persister     SignaturePersister
 }
 
-func NewSignatureService(logger *zap.SugaredLogger, deviceSvc *DeviceService, signerCreator SignerCreator, persister SignaturePersister) *SignatureService {
+func NewSignatureService(
+	logger *zap.SugaredLogger,
+	deviceSvc DeviceServer,
+	signerCreator SignerCreator,
+	persister SignaturePersister,
+) *SignatureService {
 	return &SignatureService{
 		logger:        logger,
 		deviceSvc:     deviceSvc,

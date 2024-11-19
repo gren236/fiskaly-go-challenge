@@ -19,10 +19,10 @@ func NewSignerCreator() *SignerCreator {
 // at runtime. BTW, Go std libraries use this pattern in some places, e.g., gob package.
 func (sc *SignerCreator) CreateSigner(kp domain.KeyPair) (domain.Signer, error) {
 	switch kp := kp.(type) {
-	case ECCKeyPair:
-		return &ECCSigner{keyPair: kp}, nil
-	case RSAKeyPair:
-		return &RSASigner{keyPair: kp}, nil
+	case *ECCKeyPair:
+		return &ECCSigner{keyPair: *kp}, nil
+	case *RSAKeyPair:
+		return &RSASigner{keyPair: *kp}, nil
 	default:
 		return nil, fmt.Errorf("unsupported key pair type")
 	}

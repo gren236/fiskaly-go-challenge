@@ -14,7 +14,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer logger.Sync()
+	defer logger.Sync() // nolint:errcheck
 
 	sLogger := logger.Sugar()
 

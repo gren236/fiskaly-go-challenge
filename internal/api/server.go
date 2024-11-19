@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/gren236/fiskaly-go-challenge/internal/domain"
 	"go.uber.org/zap"
@@ -38,18 +39,26 @@ type Config struct {
 
 // Server manages HTTP requests and dispatches them to the appropriate services.
 type Server struct {
-	logger *zap.SugaredLogger
-	config Config
+	logger   *zap.SugaredLogger
+	config   Config
+	validate *validator.Validate
 
 	deviceService    DeviceService
 	signatureService SignatureService
 }
 
 // NewServer is a factory to instantiate a new Server.
-func NewServer(logger *zap.SugaredLogger, config Config, deviceSvc DeviceService, signatureSvc SignatureService) *Server {
+func NewServer(
+	logger *zap.SugaredLogger,
+	config Config,
+	validate *validator.Validate,
+	deviceSvc DeviceService,
+	signatureSvc SignatureService,
+) *Server {
 	return &Server{
 		logger:           logger,
 		config:           config,
+		validate:         validate,
 		deviceService:    deviceSvc,
 		signatureService: signatureSvc,
 	}
@@ -65,14 +74,18 @@ func (s *Server) GetHttpServer() *http.Server {
 	mux.Handle("GET /api/v0/devices", http.HandlerFunc(s.GetDevices))
 	mux.Handle("GET /api/v0/devices/{id}", http.HandlerFunc(s.GetDevice))
 
-	//mux.Handle("POST /api/v0/devices/{id}/signatures", http.HandlerFunc(s.SignTransaction))
-	//mux.Handle("GET /api/v0/devices/{id}/signatures", http.HandlerFunc(s.GetSignatures))
+	mux.Handle("POST /api/v0/devices/{id}/signatures", http.HandlerFunc(s.SignTransaction))
+	mux.Handle("GET /api/v0/devices/{id}/signatures", http.HandlerFunc(s.GetSignatures))
+
+	// Add middleware
+	logMiddleware := LoggingMiddleware(s.logger)
+	loggedMux := logMiddleware(mux)
 
 	listenAddr := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
 
 	return &http.Server{
 		Addr:    listenAddr,
-		Handler: mux,
+		Handler: loggedMux,
 	}
 }
 
